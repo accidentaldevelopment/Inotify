@@ -11,6 +11,9 @@ GEM_SPEC = Gem::Specification.new do |s|
   s.platform = 'linux'
   s.required_ruby_version = '>= 1.9.2'
   s.files = FileList['ext/inotify/*']
+  s.add_development_dependency('rspec')
+  s.add_development_dependency('rake-compiler')
+  s.add_development_dependency('yard')
   s.extensions << 'ext/inotify/extconf.rb'
   s.summary = 'Ruby binding for inotify kernel module'
   s.description = <<DESC

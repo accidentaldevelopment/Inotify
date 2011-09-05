@@ -8,19 +8,36 @@ There are a few of these out there, but most seem to be rather old or for 1.8.x 
 Installation
 ---
 
-Installation is pretty simple:
-
-	1. Clone the repo
-	2. rake gem
-	3. gem install pkg/inotify-<version>.gem
+### Prereqs
 
 **Note:** This will only work on Linux.  The Inotify system doesn't exist on anything else.
 
+**Another Note:** Inotify was included in the mainline kernel starting with 2.6.13.  That was released in 2005, so any systems newer than that (rhel5+, for example) should include it.  
+
+If you're just going to install the gem, there are none beyond the usual; i.e, compiler, kernel headers, etc.
+
+If you plan to clone the repo or do anything with the Rakefile, you'll need three gems (these are listed development_dependecies in the gemspec, but that doesn't really help people trying to just run specs):
+
+  1. rake-compiler
+  2. rspec (>= 2.6)
+  3. yard
+
+### Actual Installation
+
+There are basically two options for installation:
+  
+  1. Clone the repo, build the gem, and install
+  2. Download the gem from the Downloads section and install that.
+
+Option 1 requires the prereqs listed above.  Option 2 shouldn't require anything.  Note that there's no guarantee the gem available for download will match the current version.  I plan to keep them in sync, but I'm quite capable of forgetting such things.
+
+
 This library has been tested on the following systems:
-	* Red Hat 5 x86_64
-	* Red Hat 6 x86_64
-	* Fedora 15 x86_64
-It should work on a 32bit system, but I don't have one to test on.
+	* Red Hat 5   x86_64
+	* Red Hat 6   x86_64
+	* Fedora 15   x86_64
+	* Ubuntu 10.4 i686
+This has only been tested on one 32 bit system so far.  But since inotify is part of the kernel it's probably safe to assume it will work on anything that has a kernel new enough to have the subsystem.  
 
 Usage
 ---
