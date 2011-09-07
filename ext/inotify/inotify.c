@@ -10,7 +10,7 @@
 #include <asm-i386/ioctls.h>
 #endif
 
-#define VERSION "0.0.1"
+#define VERSION "0.1.0"
 
 // Max size for read(2) calls.  There's probably a better way to do this
 #define BUF_SIZE (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
