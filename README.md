@@ -33,10 +33,10 @@ Option 1 requires the prereqs listed above.  Option 2 shouldn't require anything
 
 
 This library has been tested on the following systems:
-	* Red Hat 5   x86_64
-	* Red Hat 6   x86_64
-	* Fedora 15   x86_64
-	* Ubuntu 10.4 i686
+  * Red Hat 5   x86_64
+  * Red Hat 6   x86_64
+  * Fedora 15   x86_64
+  * Ubuntu 10.4 i686
 This has only been tested on one 32 bit system so far.  But since inotify is part of the kernel it's probably safe to assume it will work on anything that has a kernel new enough to have the subsystem.  
 
 Usage
@@ -44,20 +44,19 @@ Usage
 
 First things first, I recommend reading the inotify man page.  It's the best explanation of how the system works and what each mask bit does.  This library is a relatively thin layer on top of the C API, so it's pretty similar in how it works.
 
-	# First up, create an instance of Inotify
-	inotify = Inotify.new
-	
-	# Add a watch for a directory and a file
-	etc_watcher = inotify.add_watcher('/etc', Inotify::CREATE)  # Watches for the creation of a file or subdirectory in /etc
-	etc_hosts_watcher = inotify.add_watcher('/etc/hosts' Inotify::ACCESS | Inotify::OPEN) # Watches for /etc/hosts being access or opened
-	
-	# To read events, use the read() instance method
-	events = inotify.read
-	#=> [#<Inotify::Event @wd=1, @mask=256, @cookie=0, @types=[:CREATE], @path="blah">, 
-	     #<Inotify::Event @wd=2, @mask=32, @cookie=0, @types=[:OPEN], @path="">]
-	
-	# Close the Inotify instance
-	inotify.close
+    # First up, create an instance of Inotify
+    inotify = Inotify.new
+    
+    # Add a watch for a directory and a file
+    etc_watcher = inotify.add_watcher('/etc', Inotify::CREATE)  # Watches for the creation of a file or subdirectory in /etc
+    etc_hosts_watcher = inotify.add_watcher('/etc/hosts' Inotify::ACCESS | Inotify::OPEN) # Watches for /etc/hosts being access or opened
+    
+    # To read events, use the read() instance method
+    events = inotify.read #=> [#<Inotify::Event @wd=1, @mask=256, @cookie=0, @types=[:CREATE], @path="blah">, 
+    #<Inotify::Event @wd=2, @mask=32, @cookie=0, @types=[:OPEN], @path="">]
+  
+    # Close the Inotify instance
+    inotify.close
 
 A couple things to notice about this:
 
@@ -72,7 +71,7 @@ A couple things to notice about this:
 5. *read()* is a blocking call.  The application will be unresponsive until there is something to read.
 
 6. The *ready?* instance method will tell you if there are any events to be read:
-		inotify.ready? #=> true or false
+    inotify.ready? #=> true or false
 
 In order to prevent your application from blocking, you'll probably want to use something like *ready?* or *IO.select()*.
 

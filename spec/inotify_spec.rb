@@ -15,10 +15,10 @@ describe Inotify do
       @inotify.watches.should == [1]
     end
     
-		it 'should remove watchers with #rm_watcher' do
-			@inotify.add_watcher(Dir.getwd, Inotify::CREATE)
+    it 'should remove watchers with #rm_watcher' do
+      @inotify.add_watcher(Dir.getwd, Inotify::CREATE)
       @inotify.rm_watcher(1)
-			@inotify.watches.should == []
-		end
+      @inotify.watches.should == []
+    end
   end
 end
