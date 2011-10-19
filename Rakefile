@@ -3,6 +3,9 @@ require 'rspec/core/rake_task'
 require 'yard'
 require 'rubygems/package_task'
 
+# Add the doc directory to clobbered dirs
+CLOBBER << ['doc']
+
 GEM_SPEC = Gem::Specification.new do |s|
   s.name = 'inotify'
   s.version = File.read('ext/inotify/inotify.c')[/#define VERSION "(.*)"/,1]

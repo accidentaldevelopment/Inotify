@@ -33,10 +33,12 @@ Option 1 requires the prereqs listed above.  Option 2 shouldn't require anything
 
 
 This library has been tested on the following systems:
+
   * Red Hat 5   x86_64
   * Red Hat 6   x86_64
   * Fedora 15   x86_64
   * Ubuntu 10.4 i686
+
 This has only been tested on one 32 bit system so far.  But since inotify is part of the kernel it's probably safe to assume it will work on anything that has a kernel new enough to have the subsystem.  
 
 Usage

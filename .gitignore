@@ -1,5 +1,6 @@
 tmp/*
 pkg/*
+doc/*
 *.so
 .yardoc
 rsync.thor
