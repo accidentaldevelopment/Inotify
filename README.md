@@ -68,7 +68,7 @@ A couple things to notice about this:
 
 3. The *add_watcher* method returns the watch descriptor created by the underlying system call.  This value corresponds to the @wd instance variable.  If you want to check which watch was triggered, or delete a watch, you'll need to know the descriptor number.
 
-4. The second parameter to *add_watcher* can be a series of the constants ORed together, you're not limited to one even per watch descriptor.
+4. The second parameter to *add_watcher* can be a series of the constants ORed together, you're not limited to one event per watch descriptor.
 
 5. *read()* is a blocking call.  The application will be unresponsive until there is something to read.
 
@@ -76,6 +76,24 @@ A couple things to notice about this:
     inotify.ready? #=> true or false
 
 In order to prevent your application from blocking, you'll probably want to use something like *ready?* or *IO.select()*.
+
+### IO::select Example
+Just for fun, here's an example using IO::select
+
+    require 'inotify'
+
+    inotify = Inotify.new
+    inotify.add_watcher('/tmp', Inotify::CREATE | Inotify::ATTRIB)
+    
+    run = true
+    trap('INT'){ run = false }
+    
+    while run
+      ev = IO.select([inotify],nil,nil,1)
+      p ev[0][0].read if ev
+    end
+
+I'd suggest looking at the Rubydocs for IO::select, but they're not remarkably useful.  If you need a reference, man(2) select is probably where to look.
 
 Things Left to Do
 ---
