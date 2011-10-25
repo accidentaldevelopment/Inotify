@@ -1,14 +1,7 @@
 #include "ruby.h"
 #include "ruby/io.h"
 #include <linux/inotify.h>
-
-#ifdef HAVE_ASM_GENERIC_IOCTLS_H
-#include <asm-generic/ioctls.h>
-#elif HAVE_ASM_X86_64_IOCTLS_H
-#include <asm-x86_64/ioctls.h>
-#elif HAVE_ASM_I386_IOCTLS_H
-#include <asm-i386/ioctls.h>
-#endif
+#include <asm/ioctls.h>
 
 #define VERSION "0.1.0"
 
