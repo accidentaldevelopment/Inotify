@@ -13,7 +13,7 @@ GEM_SPEC = Gem::Specification.new do |s|
   s.email = 'brian@accidentaldevelopment.com'
   s.platform = 'linux'
   s.required_ruby_version = '>= 1.9.2'
-  s.files = FileList['ext/inotify/*']
+  s.files = FileList['ext/inotify/*', 'spec/**/*', 'Rakefile', 'README.md']
   s.add_development_dependency('rspec')
   s.add_development_dependency('rake-compiler')
   s.add_development_dependency('yard')
