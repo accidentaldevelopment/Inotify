@@ -1,5 +1,9 @@
 #include "ruby.h"
+#ifdef HAVE_RUBY_IO_H
 #include "ruby/io.h"
+#else
+#include "rubyio.h"
+#endif
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/inotify.h>
@@ -46,7 +50,11 @@ static VALUE rb_inotify_add(VALUE self, VALUE path, VALUE mask) {
   int wd;
   rb_io_t *fptr;
   GetOpenFile(self, fptr);
+#ifdef HAVE_STRUCT_RB_IO_T_FD
   wd = inotify_add_watch(fptr->fd, StringValueCStr(path), NUM2UINT(mask));
+#else
+  wd = inotify_add_watch(fileno(fptr->f), StringValueCStr(path), NUM2UINT(mask));
+#endif /* HAVE_STRUCT_RB_IO_T_FD */
   
   /* IN_ONESHOT does not work in versions less than 2.6.16 (see inotify(7)).
      So warn if we're in that scope */
@@ -66,7 +74,11 @@ static VALUE rb_inotify_add(VALUE self, VALUE path, VALUE mask) {
 static VALUE rb_inotify_rm(VALUE self, VALUE wd) {
   rb_io_t *fptr;
   GetOpenFile(self, fptr);
+#ifdef HAVE_STRUCT_RB_IO_T_FD
   if( inotify_rm_watch(fptr->fd,FIX2INT(wd)) )
+#else
+  if( inotify_rm_watch(fileno(fptr->f),FIX2INT(wd)) )
+#endif /* HAVE_STRUCT_RB_IO_T_FD */
     rb_sys_fail("inotify_rm_watch");
   rb_ary_delete(rb_iv_get(self,"@watches"), wd);
   return Qnil;
@@ -85,7 +97,12 @@ static VALUE rb_event_detect_types(uint32_t mask) {
   long const_val;
   VALUE types = rb_ary_new();
   for(i=0; i<RARRAY_LEN(constants); i++) {
-    id = SYM2ID(RARRAY_PTR(constants)[i]);
+#if USE_SYMBOL_AS_CONSTANT_NAME
+    id = SYM2ID(rb_ary_entry(constants, i));
+#else
+    VALUE name = rb_ary_entry(constants, i);
+    id = rb_intern(STR2CSTR(name));
+#endif
     const_val = NUM2LONG(rb_const_get(rb_mInotifyConstants,id));
     if( const_val == IN_ALL_EVENTS ) continue;
     if( mask & const_val )
@@ -118,7 +135,11 @@ static VALUE rb_inotify_ready(VALUE self) {
   rb_io_t *fptr;
   int bytes_available;
   GetOpenFile(self, fptr);
+#ifdef HAVE_STRUCT_RB_IO_T_FD
   if( ioctl(fptr->fd, FIONREAD, &bytes_available) )
+#else  
+  if( ioctl(fileno(fptr->f), FIONREAD, &bytes_available) )
+#endif /* HAVE_STRUCT_RB_IO_T_FD */
     rb_sys_fail("ioctl");
   return (bytes_available == 0 ? Qfalse : Qtrue); //INT2NUM(bytes_available));
 }
@@ -138,8 +159,11 @@ static VALUE rb_inotify_read(VALUE self) {
   
   GetOpenFile(self, fptr);
   events = rb_ary_new();
-
+#ifdef HAVE_STRUCT_RB_IO_T_FD
   if( (num_read = read(fptr->fd, buf, BUF_SIZE)) < 0 ) 
+#else
+  if( (num_read = read(fileno(fptr->f), buf, BUF_SIZE)) < 0 )
+#endif /* HAVE_STRUCT_RB_IO_T_FD */
     rb_sys_fail("read");
   for(p=buf; p<buf + num_read; ) {
     ev = (struct inotify_event *)p;
