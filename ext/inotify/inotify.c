@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/inotify.h>
+#include <linux/version.h>
 
 #define VERSION "0.1.0"
 
@@ -46,6 +47,12 @@ static VALUE rb_inotify_add(VALUE self, VALUE path, VALUE mask) {
   rb_io_t *fptr;
   GetOpenFile(self, fptr);
   wd = inotify_add_watch(fptr->fd, StringValueCStr(path), NUM2UINT(mask));
+  
+  /* IN_ONESHOT does not work in versions less than 2.6.16 (see inotify(7)).
+     So warn if we're in that scope */
+  if ( (NUM2UINT(mask) & IN_ONESHOT) && (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,16)) )
+	  rb_warn("ONESHOT does not work in kernels before 2.6.16"); 
+   
   if(wd == -1)
     rb_sys_fail("inotify_add_watch");
   rb_ary_push(rb_iv_get(self, "@watches"), INT2FIX(wd));
