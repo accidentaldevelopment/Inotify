@@ -24,9 +24,9 @@ describe Inotify do
     # This is failing in rhel5.  I believe it's due to a difference in the way 
     # ONESHOT and IGNORED are handled in particular versions of the kernel
     it 'removes ONESHOT watchers after an event fires' do
-      @inotify.add_watcher('/etc/hosts', Inotify::ACCESS | Inotify::ONESHOT)
+      @inotify.add_watcher('/etc/hosts', Inotify::OPEN | Inotify::ONESHOT)
       @inotify.watches.should have(1).item # sanity check
-      File.read('/etc/hosts') # ACCESS hosts file
+      open('/etc/hosts'){} # OPEN hosts file
       @inotify.read while @inotify.ready? # make sure I read all events
       @inotify.watches.should be_empty
     end
