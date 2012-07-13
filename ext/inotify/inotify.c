@@ -1,7 +1,8 @@
 #include "ruby.h"
 #include "ruby/io.h"
-#include <linux/inotify.h>
-#include <asm/ioctls.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/inotify.h>
 
 #define VERSION "0.1.0"
 
@@ -28,11 +29,12 @@ static VALUE rb_cEvent;
  */
 static VALUE rb_inotify_init(VALUE self) {
   int fd = inotify_init();
+  VALUE rb_fd;
+  
   if(fd == -1)
     rb_sys_fail("inotify_init");
   rb_iv_set(self, "@watches", rb_ary_new());
-  VALUE fd_array = rb_ary_new3(1, INT2FIX(fd));
-  VALUE rb_fd = INT2FIX(fd);
+  rb_fd = INT2FIX(fd);
   rb_call_super(1, &rb_fd);
   return self;
 }
@@ -111,8 +113,8 @@ static VALUE rb_event_setup(struct inotify_event *ev) {
  */
 static VALUE rb_inotify_ready(VALUE self) {
   rb_io_t *fptr;
-  GetOpenFile(self, fptr);
   int bytes_available;
+  GetOpenFile(self, fptr);
   if( ioctl(fptr->fd, FIONREAD, &bytes_available) )
     rb_sys_fail("ioctl");
   return (bytes_available == 0 ? Qfalse : Qtrue); //INT2NUM(bytes_available));
@@ -125,12 +127,14 @@ static VALUE rb_inotify_ready(VALUE self) {
  */
 static VALUE rb_inotify_read(VALUE self) {
   rb_io_t *fptr;
-  GetOpenFile(self, fptr);
   ssize_t num_read;
   char buf[BUF_SIZE];
   char *p;
   struct inotify_event *ev;
-  VALUE events = rb_ary_new();
+  VALUE events;
+  
+  GetOpenFile(self, fptr);
+  events = rb_ary_new();
 
   if( (num_read = read(fptr->fd, buf, BUF_SIZE)) < 0 ) 
     rb_sys_fail("read");
