@@ -7,11 +7,7 @@
 #define VERSION "0.1.0"
 
 /* Max size for read(2) calls.  There's probably a better way to do this */
-#ifdef HAVE_TYPE_CONST /* apparently const is better than #define now, so we're checking for const! */
 static const size_t BUF_SIZE = (10 * (sizeof(struct inotify_event) + NAME_MAX + 1));
-#else
-#define BUF_SIZE (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
-#endif /* HAVE_TYPE_CONST */
 
 /* I can never remember the proper name for the method, so here's a macro! */
 #define CSTR2STR(cstr) rb_tainted_str_new2(cstr)
