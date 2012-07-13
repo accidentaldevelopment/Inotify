@@ -5,9 +5,14 @@
 
 #define VERSION "0.1.0"
 
-// Max size for read(2) calls.  There's probably a better way to do this
+/* Max size for read(2) calls.  There's probably a better way to do this */
+#ifdef HAVE_TYPE_CONST /* apparently const is better than #define now, so we're checking for const! */
+static const size_t BUF_SIZE = (10 * (sizeof(struct inotify_event) + NAME_MAX + 1));
+#else
 #define BUF_SIZE (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
-// I can never remember the proper name for the method, so here's a macro!
+#endif /* HAVE_TYPE_CONST */
+
+/* I can never remember the proper name for the method, so here's a macro! */
 #define CSTR2STR(cstr) rb_tainted_str_new2(cstr)
 
 // class Notify < IO
@@ -131,6 +136,9 @@ static VALUE rb_inotify_read(VALUE self) {
     rb_sys_fail("read");
   for(p=buf; p<buf + num_read; ) {
     ev = (struct inotify_event *)p;
+    /* If the watch descriptor has been IGNORED (i.e, due to ONESHOT) make sure to remove it from the @watches array */
+    if ( ev->mask & IN_IGNORED )
+      rb_ary_delete(rb_iv_get(self,"@watches"), UINT2NUM(ev->wd));
     rb_ary_push(events,rb_event_setup(ev));
     p += sizeof(struct inotify_event) + ev->len;
   }

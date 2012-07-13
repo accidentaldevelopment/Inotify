@@ -36,7 +36,6 @@ YARD::Rake::YardocTask.new do |yard|
   yard.options = ['--no-private']
 end
 
-desc 'Run specs'
 RSpec::Core::RakeTask.new(:specs => :compile) do |r|
   r.rspec_opts = '-f d' if ENV['DOC']
   r.pattern = 'spec/**/*_spec.rb'
