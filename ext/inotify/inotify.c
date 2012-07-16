@@ -9,7 +9,7 @@
 #include <sys/inotify.h>
 #include <linux/version.h>
 
-#define VERSION "0.1.0"
+#define VERSION "0.2.0"
 
 /* Max size for read(2) calls.  There's probably a better way to do this */
 static const size_t BUF_SIZE = (10 * (sizeof(struct inotify_event) + NAME_MAX + 1));
