@@ -29,14 +29,20 @@ static VALUE rb_cEvent;
  * @return [Inotify] A new Inotify instance
  */
 static VALUE rb_inotify_init(VALUE self) {
-  int fd = inotify_init();
-  VALUE rb_fd;
+  int fd;      /* Inotify file descriptor */
+  VALUE rb_fd; /* Ruby's Inotify file descriptor */
   
+  /* Get Inotify FD and check for failure */
+  fd = inotify_init();
   if(fd == -1)
     rb_sys_fail("inotify_init");
+  
+  /* Instantiate an instance variable array to hold the watch descriptors */
   rb_iv_set(self, "@watches", rb_ary_new());
+  
   rb_fd = INT2FIX(fd);
-  rb_call_super(1, &rb_fd);
+  rb_call_super(1, &rb_fd); /* Call IO::new */
+  
   return self;
 }
 
@@ -47,22 +53,27 @@ static VALUE rb_inotify_init(VALUE self) {
  * @return [Fixnum] The watch descriptor integer of the newly added descriptor
  */
 static VALUE rb_inotify_add(VALUE self, VALUE path, VALUE mask) {
-  int wd;
-  rb_io_t *fptr;
+  int wd;        /* The watch descriptor we'll get back from inotify_add_watch() */
+  rb_io_t *fptr; /* C struct for the Ruby IO object */
+  
   GetOpenFile(self, fptr);
-#ifdef HAVE_STRUCT_RB_IO_T_FD
+#ifdef HAVE_STRUCT_RB_IO_T_FD  /* 1.9.1 API */
   wd = inotify_add_watch(fptr->fd, StringValueCStr(path), NUM2UINT(mask));
 #else
   wd = inotify_add_watch(fileno(fptr->f), StringValueCStr(path), NUM2UINT(mask));
 #endif /* HAVE_STRUCT_RB_IO_T_FD */
   
+  /* check for failure */
+  if(wd == -1)
+    rb_sys_fail("inotify_add_watch");
+  
+  
   /* IN_ONESHOT does not work in versions less than 2.6.16 (see inotify(7)).
      So warn if we're in that scope */
   if ( (NUM2UINT(mask) & IN_ONESHOT) && (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,16)) )
 	  rb_warn("ONESHOT does not work in kernels before 2.6.16"); 
-   
-  if(wd == -1)
-    rb_sys_fail("inotify_add_watch");
+    
+  /* Add watch descriptor to @watches */
   rb_ary_push(rb_iv_get(self, "@watches"), INT2FIX(wd));
   return INT2FIX(wd);
 }
@@ -72,14 +83,18 @@ static VALUE rb_inotify_add(VALUE self, VALUE path, VALUE mask) {
  * @param [Fixnum] wd The number of the watch descriptor to remove
  */
 static VALUE rb_inotify_rm(VALUE self, VALUE wd) {
-  rb_io_t *fptr;
+  rb_io_t *fptr;  /* C struct for the Ruby IO object */
   GetOpenFile(self, fptr);
-#ifdef HAVE_STRUCT_RB_IO_T_FD
+ 
+/* This is ugly, gotta find a better way */ 
+#ifdef HAVE_STRUCT_RB_IO_T_FD /* 1.9.1 API */
   if( inotify_rm_watch(fptr->fd,FIX2INT(wd)) )
 #else
   if( inotify_rm_watch(fileno(fptr->f),FIX2INT(wd)) )
 #endif /* HAVE_STRUCT_RB_IO_T_FD */
     rb_sys_fail("inotify_rm_watch");
+  
+  /* Get watch descriptor out of @watches */
   rb_ary_delete(rb_iv_get(self,"@watches"), wd);
   return Qnil;
 }
@@ -91,20 +106,25 @@ static VALUE rb_inotify_rm(VALUE self, VALUE wd) {
  * @return [Symbol] A symbol that matches the name of the event that was masked, not including ALL_EVENTS
  */
 static VALUE rb_event_detect_types(uint32_t mask) {
-  VALUE constants = rb_const_list(rb_mod_const_at(rb_mInotifyConstants,0));
-  int i;
-  ID id;
-  long const_val;
-  VALUE types = rb_ary_new();
+  VALUE constants;  /* list of constants in Inotify::Constants */
+  int i;            /* Counter for constants */ 
+  ID id;            /* Internal (C) representation of each constant Symbol */
+  long const_val;   /* Value of the constant */
+  VALUE types;      /* Array to hold a symbol for each type of event this represents */
+  
+  constants = rb_const_list(rb_mod_const_at(rb_mInotifyConstants,0));
+  types = rb_ary_new();
+  
   for(i=0; i<RARRAY_LEN(constants); i++) {
-#if USE_SYMBOL_AS_CONSTANT_NAME
+#if USE_SYMBOL_AS_CONSTANT_NAME /* 1.9.1 API */
     id = SYM2ID(rb_ary_entry(constants, i));
-#else
+#else /* API < 1.9.1.  rb_const_list returns strings instead of symbols.  Convert */
     VALUE name = rb_ary_entry(constants, i);
     id = rb_intern(STR2CSTR(name));
 #endif
     const_val = NUM2LONG(rb_const_get(rb_mInotifyConstants,id));
     if( const_val == IN_ALL_EVENTS ) continue;
+    /* If the event mask has this value, add it to the array */
     if( mask & const_val )
       rb_ary_push(types,ID2SYM(id));
   }
@@ -132,16 +152,17 @@ static VALUE rb_event_setup(struct inotify_event *ev) {
  * @return [boolean] A boolean indicating if anything is available to be read
  */
 static VALUE rb_inotify_ready(VALUE self) {
-  rb_io_t *fptr;
-  int bytes_available;
+  rb_io_t *fptr;        /* C struct for the Ruby IO object */
+  int bytes_available;  /* Number of bytes ready to be read from the descriptor */
   GetOpenFile(self, fptr);
-#ifdef HAVE_STRUCT_RB_IO_T_FD
+#ifdef HAVE_STRUCT_RB_IO_T_FD /* 1.9.1 API */
   if( ioctl(fptr->fd, FIONREAD, &bytes_available) )
 #else  
   if( ioctl(fileno(fptr->f), FIONREAD, &bytes_available) )
 #endif /* HAVE_STRUCT_RB_IO_T_FD */
     rb_sys_fail("ioctl");
-  return (bytes_available == 0 ? Qfalse : Qtrue); //INT2NUM(bytes_available));
+  
+  return (bytes_available == 0 ? Qfalse : Qtrue);
 }
 
 /*
@@ -150,28 +171,34 @@ static VALUE rb_inotify_ready(VALUE self) {
  * @return [Array<Inotify::Event>] An array of Inotify::Events
  */
 static VALUE rb_inotify_read(VALUE self) {
-  rb_io_t *fptr;
-  ssize_t num_read;
-  char buf[BUF_SIZE];
-  char *p;
-  struct inotify_event *ev;
-  VALUE events;
+  rb_io_t *fptr;             /* C struct for the Ruby IO object */
+  ssize_t num_read;          /* Number of bytes read from descriptor */
+  char buf[BUF_SIZE];        /* buffer to read inotify data into */
+  char *p;                   /* temp buffer for looping through buf */
+  struct inotify_event *ev;  /* event struct.  Re-initialized on each loop */
+  VALUE events;              /* Ruby array of Event objects */
   
   GetOpenFile(self, fptr);
   events = rb_ary_new();
-#ifdef HAVE_STRUCT_RB_IO_T_FD
-  if( (num_read = read(fptr->fd, buf, BUF_SIZE)) < 0 ) 
+  
+#ifdef HAVE_STRUCT_RB_IO_T_FD /* 1.9.1 API */
+  num_read = read(fptr->fd, buf, BUF_SIZE);
 #else
-  if( (num_read = read(fileno(fptr->f), buf, BUF_SIZE)) < 0 )
+  num_read = read(fileno(fptr->f), buf, BUF_SIZE);
 #endif /* HAVE_STRUCT_RB_IO_T_FD */
+  
+  /* check for read() failure */
+  if( num_read < 0 ) 
     rb_sys_fail("read");
+  
+  /* Loop through each event in the buffer, instantiate an Event object, and add it to the events array */
   for(p=buf; p<buf + num_read; ) {
     ev = (struct inotify_event *)p;
     /* If the watch descriptor has been IGNORED (i.e, due to ONESHOT) make sure to remove it from the @watches array */
     if ( ev->mask & IN_IGNORED )
       rb_ary_delete(rb_iv_get(self,"@watches"), UINT2NUM(ev->wd));
     rb_ary_push(events,rb_event_setup(ev));
-    p += sizeof(struct inotify_event) + ev->len;
+    p += sizeof(struct inotify_event) + ev->len; /* Increment p to the start of the next event */
   }
   return events;
 }
