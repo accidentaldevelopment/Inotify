@@ -1,6 +1,8 @@
+require File.expand_path('../lib/inotify/version', __FILE__)
+
 Gem::Specification.new do |s|
   s.name = 'inotify'
-  s.version = File.read('ext/inotify/inotify.c')[/#define VERSION "(.*)"/,1]
+  s.version = Inotify::VERSION
   s.authors = ['Brian Faga']
   s.email = 'brian@accidentaldevelopment.com'
 
@@ -9,7 +11,6 @@ Gem::Specification.new do |s|
 Rather simple Ruby bindings for Linux's inotify subsystem.
 DESC
 
-  s.platform = 'linux'
   s.required_ruby_version = '>= 1.9.2'
 
   s.files         = `git ls-files`.split($/)

@@ -9,8 +9,6 @@
 #include <sys/inotify.h>
 #include <linux/version.h>
 
-#define VERSION "0.2.0"
-
 /* Max size for read(2) calls.  There's probably a better way to do this */
 static const size_t BUF_SIZE = (10 * (sizeof(struct inotify_event) + NAME_MAX + 1));
 
@@ -215,7 +213,6 @@ static VALUE rb_cEvent_is_dir(VALUE self) {
 
 void Init_inotify() {
   rb_cInotify = rb_define_class("Inotify", rb_cIO);
-  rb_define_const(rb_cInotify, "VERSION", rb_str_new2(VERSION));
   rb_define_method(rb_cInotify, "initialize", rb_inotify_init, 0);
   rb_define_method(rb_cInotify, "add_watcher", rb_inotify_add, 2);
   rb_define_method(rb_cInotify, "rm_watcher", rb_inotify_rm, 1);
