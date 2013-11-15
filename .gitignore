@@ -4,3 +4,4 @@ doc/*
 *.so
 .yardoc
 rsync.thor
+Gemfile.lock
