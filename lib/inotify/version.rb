@@ -1,3 +1,3 @@
-class Inotify
-  VERSION = '0.2.0'
+class Inotify < IO
+  VERSION = '0.3.0'
 end
