@@ -85,12 +85,12 @@ Just for fun, here's an example using IO::select
     inotify = Inotify.new
     inotify.add_watcher('/tmp', Inotify::CREATE | Inotify::ATTRIB)
     
-    run = true
-    trap('INT'){ run = false }
-    
-    while run
-      ev = IO.select([inotify],nil,nil,1)
-      p ev[0][0].read if ev
+    catch :done do
+      trap('INT') { throw :done }
+      loop do
+        ready = select([inotify])
+        p ready
+      end
     end
 
 I'd suggest looking at the Rubydocs for IO::select, but they're not remarkably useful.  If you need a reference, man(2) select is probably where to look.
