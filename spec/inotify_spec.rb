@@ -6,6 +6,25 @@ describe Inotify do
   it 'should include the Inotify::Constants module' do
     Inotify.should include(Inotify::Constants)
   end
+
+  context '::buffer_size' do
+    it 'returns the current buffer_size' do
+      Inotify.buffer_size.should == 10 * Inotify::MIN_BUFFER
+    end
+  end
+
+  context '::buffer_size=' do
+    it 'sets the buffer size' do
+      Inotify.buffer_size = 5 * Inotify::MIN_BUFFER
+      Inotify.buffer_size.should == 5 * Inotify::MIN_BUFFER
+    end
+
+    it 'raises an ArgumentError for values that are too low' do
+      expect do
+        Inotify.buffer_size = Inotify::MIN_BUFFER - 1
+      end.to raise_error(ArgumentError, /larger than MIN_BUFFER \(#{Inotify::MIN_BUFFER}\)/)
+    end
+  end
   
   context 'Inotify objects' do
     before(:each){ @inotify = Inotify.new }

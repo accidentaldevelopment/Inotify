@@ -9,8 +9,8 @@
 #include <sys/inotify.h>
 #include <linux/version.h>
 
-/* Max size for read(2) calls.  There's probably a better way to do this */
-static const size_t BUF_SIZE = (10 * (sizeof(struct inotify_event) + NAME_MAX + 1));
+/* Min size for one inotify_event struct, assumes full path */
+static const size_t MIN_BUFFER = (sizeof(struct inotify_event) + NAME_MAX + 1);
 
 /* I can never remember the proper name for the method, so here's a macro! */
 #define CSTR2STR(cstr) rb_tainted_str_new2(cstr)
@@ -171,7 +171,8 @@ static VALUE rb_inotify_ready(VALUE self) {
 static VALUE rb_inotify_read(VALUE self) {
   rb_io_t *fptr;             /* C struct for the Ruby IO object */
   ssize_t num_read;          /* Number of bytes read from descriptor */
-  char buf[BUF_SIZE];        /* buffer to read inotify data into */
+  size_t buf_size = NUM2SIZET(rb_cv_get(rb_cInotify,"@@buffer_size"));
+  char buf[buf_size];        /* buffer to read inotify data into */
   char *p;                   /* temp buffer for looping through buf */
   struct inotify_event *ev;  /* event struct.  Re-initialized on each loop */
   VALUE events;              /* Ruby array of Event objects */
@@ -180,9 +181,9 @@ static VALUE rb_inotify_read(VALUE self) {
   events = rb_ary_new();
   
 #ifdef HAVE_STRUCT_RB_IO_T_FD /* 1.9.1 API */
-  num_read = read(fptr->fd, buf, BUF_SIZE);
+  num_read = read(fptr->fd, buf, buf_size);
 #else
-  num_read = read(fileno(fptr->f), buf, BUF_SIZE);
+  num_read = read(fileno(fptr->f), buf, buf_size);
 #endif /* HAVE_STRUCT_RB_IO_T_FD */
   
   /* check for read() failure */
@@ -211,8 +212,31 @@ static VALUE rb_cEvent_is_dir(VALUE self) {
   return Qfalse;
 }
 
+static VALUE rb_inotify_s_set_buffer_size(VALUE klass, VALUE size)
+{
+  if ( NUM2SIZET(size) < MIN_BUFFER )
+    rb_raise(rb_eArgError, "must specify a value larger than MIN_BUFFER (%d)", MIN_BUFFER);
+  rb_cv_set(klass, "@@buffer_size", size);
+  return size;
+}
+
+/*
+ * @return [Fixnum] The current buffer size used by __read(2)__
+ */
+static VALUE rb_inotify_s_get_buffer_size(VALUE klass, VALUE size)
+{
+  return rb_cv_get(klass, "@@buffer_size");
+}
+
 void Init_inotify() {
   rb_cInotify = rb_define_class("Inotify", rb_cIO);
+  rb_require("inotify/version");
+
+  rb_inotify_s_set_buffer_size(rb_cInotify, SIZET2NUM(10 * MIN_BUFFER));
+
+  rb_define_const(rb_cInotify, "MIN_BUFFER",    SIZET2NUM(MIN_BUFFER));
+  rb_define_singleton_method(rb_cInotify, "buffer_size=", rb_inotify_s_set_buffer_size, 1);
+  rb_define_singleton_method(rb_cInotify, "buffer_size", rb_inotify_s_get_buffer_size, 0);
   rb_define_method(rb_cInotify, "initialize", rb_inotify_init, 0);
   rb_define_method(rb_cInotify, "add_watcher", rb_inotify_add, 2);
   rb_define_method(rb_cInotify, "rm_watcher", rb_inotify_rm, 1);
@@ -247,6 +271,7 @@ void Init_inotify() {
   rb_define_const(rb_mInotifyConstants, "ISDIR",         LONG2NUM(IN_ISDIR));
   rb_define_const(rb_mInotifyConstants, "ONESHOT",       LONG2NUM(IN_ONESHOT));
   rb_define_const(rb_mInotifyConstants, "ALL_EVENTS",    LONG2NUM(IN_ALL_EVENTS));
+
   rb_include_module(rb_cInotify, rb_mInotifyConstants);
 
   rb_cEvent = rb_define_class_under(rb_cInotify, "Event", rb_cObject);
